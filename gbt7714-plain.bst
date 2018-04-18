@@ -100,6 +100,24 @@ FUNCTION {punct.space}
 { " "
 }
 
+FUNCTION {not}
+{   { #0 }
+    { #1 }
+  if$
+}
+
+FUNCTION {and}
+{   'skip$
+    { pop$ #0 }
+  if$
+}
+
+FUNCTION {or}
+{   { pop$ #1 }
+    'skip$
+  if$
+}
+
 FUNCTION {output.nonnull}
 { 's :=
   output.state mid.sentence =
@@ -171,7 +189,13 @@ FUNCTION {output.check}
 }
 
 FUNCTION {fin.entry}
-{ add.period$
+{ type$ "book" =
+  type$ "inbook" = or
+  type$ "incollection" = or
+  type$ "collection" = or
+    'skip$
+    'add.period$
+  if$
   write$
   newline$
 }
@@ -206,24 +230,6 @@ FUNCTION {new.slash}
 { output.state before.all =
     'skip$
     { after.slash 'output.state := }
-  if$
-}
-
-FUNCTION {not}
-{   { #0 }
-    { #1 }
-  if$
-}
-
-FUNCTION {and}
-{   'skip$
-    { pop$ #0 }
-  if$
-}
-
-FUNCTION {or}
-{   { pop$ #1 }
-    'skip$
   if$
 }
 
@@ -363,9 +369,7 @@ FUNCTION {format.names}
             { format.et.al }
             { t get.str.lang 'name.lang :=
               name.lang lang.en =
-                { t #1 "{vv~}{ll}{ f{~}}" format.name$ "u" change.case$
-                  t #1 "{, jj}" format.name$ *
-                }
+                { t #1 "{vv~}{ll}{ f{~}}{, jj}" format.name$ }
                 { t #1 "{ll}{ff}" format.name$ }
               if$
             }
@@ -426,68 +430,8 @@ FUNCTION {format.url}
   if$
 }
 
-FUNCTION {is.doi.in.url}
-{ 's :=
-  url empty$
-    { #0 }
-    { s text.length$ 'len :=
-      url text.length$ 'charptr :=
-        { url charptr len substring$ s = not
-          charptr #0 >
-          and
-        }
-        { charptr #1 - 'charptr := }
-      while$
-      charptr
-    }
-  if$
-}
-
 FUNCTION {format.doi}
-{ ""
-  doi empty$
-    'skip$
-    { "" 's :=
-      doi 't :=
-      #0 'numnames :=
-        { t empty$ not}
-        { t #1 #1 substring$ 'tmp.str :=
-          tmp.str "," = tmp.str " " = or
-            { s is.doi.in.url not
-                { numnames #1 + 'numnames :=
-                  numnames #1 >
-                    { ", " * }
-                    { "DOI: " * }
-                  if$
-                  "\doi{" s * "}" * *
-                }
-                'skip$
-              if$
-              "" 's :=
-            }
-            { s tmp.str * 's := }
-          if$
-          t #2 global.max$ substring$ 't :=
-        }
-      while$
-      s is.doi.in.url not
-        { numnames #1 + 'numnames :=
-          numnames #1 >
-            { ", " * }
-            'skip$
-          if$
-          "\doi{" s * "}" * *
-        }
-        'skip$
-      if$
-      's :=
-      s empty$ not
-        { new.block s }
-        { "" }
-      if$
-    }
-  if$
-}
+{ "" }
 
 FUNCTION {format.title}
 { title empty$
@@ -1113,6 +1057,7 @@ FUNCTION {monograph}
     }
   if$
   output
+  new.block
   format.year "year" output.check
   new.block
   format.series.vol.num.title "title" output.check
@@ -1135,6 +1080,7 @@ FUNCTION {incollection}
 { output.bibitem
   format.authors "author" output.check
   author format.key output
+  new.block
   format.year "year" output.check
   new.block
   format.title "title" output.check
@@ -1161,6 +1107,7 @@ FUNCTION {periodical}
 { output.bibitem
   format.authors "author" output.check
   author format.key output
+  new.block
   format.year "year" output.check
   new.block
   format.title "title" output.check
@@ -1180,6 +1127,7 @@ FUNCTION {article.in.journal}
 { output.bibitem
   format.authors "author" output.check
   author format.key output
+  new.block
   format.year "year" output.check
   new.block
   format.title "title" output.check
@@ -1201,6 +1149,7 @@ FUNCTION {patent}
 { output.bibitem
   format.authors output
   author format.key output
+  new.block
   format.year "year" output.check
   new.block
   format.title
@@ -1223,6 +1172,7 @@ FUNCTION {online}
 { output.bibitem
   format.authors output
   author format.key output
+  new.block
   format.year "year" output.check
   new.block
   format.series.vol.num.title "title" output.check
@@ -1295,7 +1245,11 @@ FUNCTION {map}
 }
 
 FUNCTION {mastersthesis}
-{ "D" set.mark
+{ is.in.chinese
+    { "\thumasterbib{}" }
+    { "D" }
+  if$
+ set.mark
   monograph
 }
 
@@ -1304,7 +1258,14 @@ FUNCTION {newspaper}
   article.in.journal
 }
 
-FUNCTION {phdthesis} { mastersthesis }
+FUNCTION {phdthesis}
+{ is.in.chinese
+    { "\thuphdbib{}" }
+    { "D" }
+  if$
+ set.mark
+  monograph
+}
 
 FUNCTION {proceedings}
 { "C" set.mark
